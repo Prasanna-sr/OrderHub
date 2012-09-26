@@ -1,0 +1,14 @@
+{
+    "name": "VCommute"
+  , "description" : "Helps VMware employees carpool"	
+  , "version": "0.0.1"
+  , "private": true
+  , "dependencies": {
+      "express": "2.5.9",
+       "cloudfoundry":"",
+       "mongoskin":"",
+       "request":"",
+       "socket.io": ""
+    
+  }
+}

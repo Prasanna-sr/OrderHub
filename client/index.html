@@ -1,0 +1,566 @@
+
+
+<!DOCTYPE html> 
+<html> 
+	<head>
+    <meta charset="UTF-8">	
+	<title>OrderHub</title> 
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<link rel="stylesheet" href="jquery.mobile.structure-1.0.1.css" />
+	<link rel="apple-touch-icon" href="images/launch_icon_57.png" />
+	<link rel="apple-touch-icon" sizes="72x72" href="images/launch_icon_72.png" />
+	<link rel="apple-touch-icon" sizes="114x114" href="images/launch_icon_114.png" />
+	<link rel="stylesheet" href="jquery.mobile-1.0.1.css" />
+	<link rel="stylesheet" href="custom.css" />
+	<script src="js/jquery-1.7.1.min.js"></script>
+	<script src="js/jquery.mobile-1.0.1.min.js"></script>
+	
+    <script src=  "js/socket.io.js"></script>
+	<script type="text/javascript">
+	var localhost = "http://localhost";
+	var server = "http://restauranthelper.cloudfoundry.com:80";
+	var socket = io.connect(server);
+
+    $('#share').live('click',function() {	
+	socket.emit('notify', document.getElementById("custMail").value);
+	
+	});
+	socket.on('update', function (data) {
+				//alert('data'+data.stringify());
+		
+		//alert('data'+data.voucher);
+		//$('#txtEmail').val(data);
+		document.getElementById('txtEmail').value = data.mail;
+		document.getElementById("lblDisplay").innerHTML = "Customer ID recognized .. !";
+	    //$('#lblDisplay').text('User recognized successfully ');
+	    
+  	    $('#notification-list').append('<li><a href="https://www.sandbox.paypal.com/webscr?cmd=_ap-payment&paykey='
+  	    + data.voucher +
+  	    '"><img src="images/dude-mail.png" /><h3>Your Free Voucher</h3><p>From OrderGub</p></a></li>');
+	    $('#notification-list').listview('refresh');
+	   //alert(data);
+  });
+  
+
+   
+  $('#PayAll').live('click', function() {
+  	  	socket.emit('pay', {pay : document.getElementById("selected").innerHTML, toemail : document.getElementById("txtEmail").value});
+  });
+  $('#PayandShare').live('click', function() {
+  	socket.emit('pay', {pay : document.getElementById("selected").innerHTML, toemail : document.getElementById("txtEmail").value});
+  	document.getElementById("selected").innerHTML = 0;
+  	document.getElementById('txtEmail').value = "";	
+  	document.getElementById("lblDisplay").innerHTML = "";	
+	});
+ 
+  socket.on('update1', function (data) {
+  	if (data.mail == document.getElementById("custMail").value)
+  	{
+		$('#notification-list').append('<li><a href="https://www.sandbox.paypal.com/webscr?cmd=_ap-preapproval&preapprovalkey='+ data.pre +'"><img src="images/dude-mail.png" /><h3>PreApproval Needed</h3><p>From OrderGub</p></a></li>');
+		$('#notification-list').listview('refresh');
+	}
+		//alert(data);
+  });
+		var priceList = [7.00, 6.00, 9.00, 5.00, 7.00, 12.00]; 
+		var nameList = ["Sushis", "Pizza","Rolls", "Kebap", "Burger", "Beef"];
+		var categoryHash = [];
+		var checkFlag = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,];
+		var count = 0;
+
+		function hideCheckBox () {
+			for(i=0; i<=10; i++){
+				if(checkFlag[i]==1){
+					document.getElementById("DISHxx"+i).style.display = "none";;
+				}
+			}
+			document.getElementById("totalx").innerHTML = parseInt(document.getElementById("totalx").innerHTML) - parseInt(document.getElementById("selected").innerHTML);
+			
+		}
+
+		window.onload = function changeQuantity(){
+			itemNum = 6;
+			for(i = 1; i <= itemNum; i++){
+				var tmpPlus = document.getElementById("plus" + i);
+				tmpPlus.onclick = function(){
+					document.getElementById("quantity" + this.id[4]).innerHTML = parseInt(document.getElementById("quantity" + this.id[4]).innerHTML) + 1;
+					document.getElementById("Quantity" + this.id[4]).innerHTML = document.getElementById("quantity" + this.id[4]).innerHTML;
+					document.getElementById("price").innerHTML = parseFloat(document.getElementById("price").innerHTML) + priceList[this.id[4]-1];
+					document.getElementById("total").innerHTML = document.getElementById("price").innerHTML ;
+					document.getElementById("totalx").innerHTML = document.getElementById("total").innerHTML ;
+					document.getElementById("currentSum").innerHTML = document.getElementById("total").innerHTML ;
+
+					// visible items if > 0
+					for(k=1; k <= itemNum; k++){
+						if(parseInt(document.getElementById("quantity"+k).innerHTML)>0){
+							document.getElementById("Dish"+k).style.display = "block";
+							//document.getElementById("DISH"+k).style.display = "block";
+							//document.getElementById("DISHx"+k).style.display = "block";
+
+						}
+						else{
+							document.getElementById("Dish"+k).style.display = "none";
+							//document.getElementById("DISH"+k).style.display = "none";
+							//document.getElementById("DISHx"+k).style.display = "none";
+
+						}
+					}
+					var checklist = document.getElementById("paypalCheck");
+					checklist.innerHTML = "";
+					count = 0;
+					categoryHash = [];
+					for(k = 1; k <= itemNum; k++){
+						var num = parseInt(document.getElementById("quantity" + k).innerHTML);
+						for(p = 1; p <= num; p++){
+							if(checkFlag[count]==0){
+								checklist.innerHTML = checklist.innerHTML + '<div class="ui-checkbox" id="DISHxx'+ count +'"><input name="dish' + count + '" id="DISH' + count + '" type="checkbox" > <label for="DISH' + count + '" id="DISHx' + count + ' class="" " > <ul data-role="listview" data-inset="false" > <li> <h3> ' + nameList[k-1] + ' $' + priceList[k-1] + '</h3></li> </ul> </label></div>';
+	            				count = count + 1;
+	            				categoryHash.push(k);
+	            			}
+						}
+					}
+					for(ii = 0; ii < count; ii++){
+						var element = document.getElementById("DISH" + ii);
+						element.onclick = function(){
+							var num = parseInt(this.id[4]);
+							if(this.checked){
+								document.getElementById("selected").innerHTML = parseInt(document.getElementById("selected").innerHTML) + priceList[categoryHash[num] - 1];
+								checkFlag[num] = 1;
+							}
+							else{
+								document.getElementById("selected").innerHTML = parseInt(document.getElementById("selected").innerHTML) - priceList[categoryHash[num] - 1];
+								checkFlag[num] = 0;
+
+							}
+						}
+					}
+				}
+				var tmpMinus = document.getElementById("minus" + i);
+				tmpMinus.onclick = function(){
+					if(parseInt(document.getElementById("quantity" + this.id[5]).innerHTML) >= 1){
+						document.getElementById("quantity" + this.id[5]).innerHTML = parseInt(document.getElementById("quantity" + this.id[5]).innerHTML) - 1;
+						document.getElementById("Quantity" + this.id[5]).innerHTML = document.getElementById("quantity" + this.id[5]).innerHTML;
+						document.getElementById("price").innerHTML = parseFloat(document.getElementById("price").innerHTML) - priceList[this.id[5]-1];						
+						document.getElementById("total").innerHTML = document.getElementById("price").innerHTML ;
+						document.getElementById("totalx").innerHTML = document.getElementById("total").innerHTML ;
+						document.getElementById("currentSum").innerHTML = document.getElementById("total").innerHTML ;
+					}
+					for(k=1; k <= itemNum; k++){
+						if(parseInt(document.getElementById("quantity"+k).innerHTML)>0){
+							document.getElementById("Dish"+k).style.display = "block";
+							document.getElementById("DISH"+k).style.display = "block";
+							document.getElementById("DISHx"+k).style.display = "block";
+
+						}
+						else{
+							document.getElementById("Dish"+k).style.display = "none";
+							document.getElementById("DISH"+k).style.display = "none";
+							document.getElementById("DISHx"+k).style.display = "none";
+						}
+
+					}
+					var checklist = document.getElementById("paypalCheck");
+					checklist.innerHTML = "";
+					count = 0;
+					categoryHash = [];
+					for(k = 1; k <= itemNum; k++){
+						var num = parseInt(document.getElementById("quantity" + k).innerHTML);
+						for(p = 1; p <= num; p++){
+							checklist.innerHTML = checklist.innerHTML + '<input name="dish' + count + '" id="DISH' + count + '" type="checkbox" > <label for="DISH' + count + '" id="DISHx' + count + '" > <ul data-role="listview" data-inset="false" > <li> <h3> ' + nameList[k-1] + ' $' + priceList[k-1] + '</h3></li> </ul> </label>';
+            				count = count + 1;
+            				categoryHash.push(k);
+						}
+					}
+
+				}
+			}
+
+
+		}
+	</script>
+</head> 
+<body> 
+
+<div data-role="page" id="people" data-theme="c">
+	<div data-role="header">
+		<h1>People
+		</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">	
+
+		<input name="text" id="waiterID" type="hidden" value="c4s_1348278764_biz@yahoo.com" type="text">
+
+		<div class="choice_list" id="people"> 
+		<h1> How many guests? </h1>
+
+
+        <input name="" id="radio1" value="" type="radio">
+        <label for="radio1">
+            1-2
+        </label>
+        <input name="" id="radio2" value="radio2" type="radio">
+        <label for="radio2">
+            3-4
+        </label>
+        <input name="" id="radio3" value="radio3" type="radio">
+        <label for="radio3">
+            5+
+        </label>
+		</div>	
+
+		<div class="choice_list" id="seat"> 
+		<h1> Please be seated at the available table </h1>		
+		</div>
+
+		<div><table>
+		<tr>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><a href="#menu"> <img src="images\table.png" /> </a></td>
+		</tr>
+		<tr>
+		<td ><a href="#menu"> <img src="images\table.png" /> </a></td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><a href="#menu"> <img src="images\table.png" /> </a></td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		</tr>
+		</table></div>
+
+	</div>
+
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar" data-theme="e" >
+			<ul>
+				<li><a href="#people" data-icon="check" data-iconpos="top" data-theme="b">People</a></li>
+				<li><a href="#menu" data-icon="star"  data-iconpos="top" data-theme="a">Menu</a></li>
+				<li><a href="#cart" data-icon="grid" data-iconpos="top" data-theme="a">Cart</a></li>
+			</ul>
+		</div><!-- /navbar -->
+	</div><!-- /footer -->
+
+</div> <!--page people ends here-->
+
+<div data-role="page" id="customer" data-theme="c">
+	<div data-role="header">
+		<h1>Customer
+		</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">	
+
+		<input name="text" id="custMail" value="" type="text">
+		<div class="choice_list" id="people"> 
+		<h1> How many guests? </h1>
+
+
+        <input name="" id="radio1" value="" type="radio">
+        <label for="radio1">
+            1-2
+        </label>
+        <input name="" id="radio2" value="radio2" type="radio">
+        <label for="radio2">
+            3-4
+        </label>
+        <input name="" id="radio3" value="radio3" type="radio">
+        <label for="radio3">
+            5+
+        </label>
+		</div>	
+
+		<div class="choice_list" id="seat"> 
+		<h1> Please be seated at the available table </h1>		
+		</div>
+
+		<div><table>
+		<tr>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><a href="#customer-notification"> <img src="images\table.png" /> </a></td>
+		</tr>
+		<tr>
+		<td ><a href="#customer-notification"> <img src="images\table.png" /> </a></td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		<td ><a href="#customer-notification"> <img src="images\table.png" /> </a></td>
+		<td ><img src="images\table.png" style="opacity:0.2"/> </td>
+		</tr>
+		</table></div>
+	</div>
+
+</div> <!--page customer ends here-->
+
+<div data-role="page" id="customer-notification" data-theme="c">
+	<div data-role="header">
+		<h1>People
+		</h1>
+	</div><!-- /header -->
+
+	<div data-role="content">	
+
+		<a id="share" data-role="button" data-theme="b">Share My Paypal Account</a>
+		<h2>Notifications</h2>
+		<ul id="notification-list" data-role="listview">
+			
+		</ul>
+
+	</div>
+
+</div> <!--page customer ends here-->
+
+
+
+<div data-role="page" id="menu" data-theme="c">
+
+	<div data-role="header">
+		<h1>Menu</h1>
+	</div><!-- /header -->
+
+
+	<div data-role="content">	
+
+
+		<div class="choice_list" id="people"> 
+
+		<div class="choice_list" id="dish"> 
+		<h1> What would you'd like to eat? </h1>
+
+		<table>
+			<tr>
+    	<td width="120">
+    		<ul data-role="listview" data-inset="false" >
+            <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus1" >Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus1">Down</a>
+			</div> </li>
+                <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus2">Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus2">Down</a>
+			</div> </li>     
+			                <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus3">Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus3">Down</a>
+			</div> </li>   
+			                <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus4">Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus4">Down</a>
+			</div> </li>   
+			                <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus5">Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus5">Down</a>
+			</div> </li>   
+			                <li><div data-role="controlgroup" data-type="horizontal" >
+			<a href="#" data-role="button" data-icon="plus" data-iconpos="notext" id="plus6">Up</a>
+			<a href="#" data-role="button" data-icon="minus" data-iconpos="notext" id="minus6">Down</a>
+			</div> </li>            
+            </ul>
+    	</td>
+
+		<td width="640">
+	    <fieldset data-role="controlgroup" data-type="vertical">
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\sushis.jpg" width="200px"/> <h3>  Sushis  $7.00</h3><span class="ui-li-count" id="quantity1" > 0 </span></li>
+            	</ul>
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\pizza.jpg" width="100px"/> <h3> Pizza $6.00</h3><span class="ui-li-count" id="quantity2" > 0 </span></li>
+            	</ul>
+                  
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\nems.jpg"/> <h3> Rolls $9.00</h3><span class="ui-li-count" id="quantity3" > 0 </span></li>
+            	</ul>
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\kebap.jpg"/> <h3> Kebap $5.00</h3><span class="ui-li-count" id="quantity4" > 0 </span></li>
+            	</ul>
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\burger.jpg"/> <h3> Burger $4.00</h3><span class="ui-li-count" id="quantity5" > 0 </span></li>
+         	    </ul>
+            	<ul data-role="listview" data-inset="false" >
+                <li><img src="images\tradi.jpg"/> <h3> Beef $12.00</h3><span class="ui-li-count" id="quantity6" > 0 </span></li>
+          		</ul>
+
+        </fieldset>
+    	</td>
+
+		</tr>
+		</table>
+		</div>
+		 <table><tr><td width="760">
+		<ul data-role="listview" data-inset="false" id = "forCSS1">
+            <li><h1> Total $</h1><span class="ui-li-count" id="currentSum">0</span></li>
+  		</ul>
+  		</td></tr></table>
+	 	
+		</div>
+
+	
+	</div><!-- /content -->
+
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar" data-theme="e" data-position="fixed">
+			<ul>
+				<li><a href="#people" data-icon="check" data-iconpos="top" data-theme="a">People</a></li>
+				<li><a href="#menu" data-icon="star" data-iconpos="top" data-theme="b">Menu</a></li>
+				<li><a href="#cart" data-icon="grid" data-iconpos="top" data-theme="a">Cart</a></li>
+			</ul>
+		</div><!-- /navbar -->
+	</div><!-- /footer -->
+
+</div><!-- /page -->
+
+<div data-role="page" id="cart" data-theme="c">
+	<div data-role="header">
+		<h1>Cart</h1>
+	</div><!-- /header -->
+	
+	<div data-role="content">	
+	<div class="choice_list" id="cart"> 
+	<h1> Customer cart </h1>
+
+
+	<ul data-role="listview" data-inset="true" >
+	<li id="Dish1" style="display:none"> Sushis  $7.00 <span class="ui-li-count"  id="Quantity1" > 0 </span></a> </li>
+	<li id="Dish2" style="display:none"> Pizza $6.00 <span class="ui-li-count"  id="Quantity2" > 0 </span></a> </li>
+	<li id="Dish3" style="display:none"> Rolls $9.00 <span class="ui-li-count"  id="Quantity3" > 0 </span></a> </li>
+	<li id="Dish4" style="display:none"> Kebap $5.00 <span class="ui-li-count"  id="Quantity4" > 0 </span></a> </li>
+	<li id="Dish5" style="display:none"> Burger  $4.00 <span class="ui-li-count"  id="Quantity5" > 0 </span></a> </li>
+	<li id="Dish6" style="display:none"> Beef $12.00 <span class="ui-li-count"  id="Quantity6" > 0 </span></a> </li>
+	<li>Price $ <span class="ui-li-count" id="price" > 0 </span></a> </li>	
+	<li>Tips $ <span class="ui-li-count" id="tips" > 0 </span></a> </li>	
+	<li>Total $ <span class="ui-li-count" id="total" > 0 </span></a> </li>	
+	</ul>
+	</div>
+
+	<div data-role="fieldcontain" class="choice_list">
+	         <a href="#paypal" data-role="button" data-inline="true" data-transition="none" href="#page1"
+	        data-icon="star" data-iconpos="left">
+	            Ready to check
+	        </a>      	              
+    </div>
+
+
+	</div>
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar" data-theme="e" >
+			<ul>
+				<li><a href="#people" data-icon="check" data-iconpos="top" data-theme="a">People</a></li>
+				<li><a href="#menu" data-icon="star" data-iconpos="top" data-theme="a">Menu</a></li>
+				<li><a href="#cart" data-icon="grid" data-iconpos="top" data-theme="b">Cart</a></li>
+			</ul>
+		</div><!-- /navbar -->
+	</div><!-- /footer -->
+</div>
+
+
+<div data-role="page" id="paypal" data-theme="c">
+	<div data-role="header">
+		<h1>Cart</h1>
+	</div><!-- /header -->
+	
+	<div data-role="content">	
+	<div class="choice_list" id="cart"> 
+	<h1> Customer cart </h1>
+
+   <fieldset data-role="controlgroup" data-type="vertical" id="paypalCheck">
+ <!--            <input name="dish1" id="DISH1" type="checkbox" >
+            <label for="DISH1" id="DISHx1" >
+            	<ul data-role="listview" data-inset="false" >
+                <li> <h3> Sushis  $7.00</h3></li>
+            </ul>
+            </label>
+            <input name="dish2" id="DISH2" type="checkbox" style="display:none">
+            <label for="DISH2" id="DISHx2" style="display:none">
+            	<ul data-role="listview" data-inset="false" >
+                <li> <h3> Pizza $6.00</h3></li>
+            </ul>
+            </label>
+            <input name="dish1" id="DISH3" type="checkbox" style="display:none">
+            <label for="DISH3" id="DISHx3" style="display:none">
+            	<ul data-role="listview" data-inset="false" >
+                <li> <h3> Rolls $9.00</h3></li>
+            </ul>
+            </label>    
+            <input name="dish1" id="DISH4" type="checkbox" style="display:none">
+            <label for="DISH4" id="DISHx4" style="display:none">
+            	<ul data-role="listview" data-inset="false" >
+                <li><h3> Kebap $5.00</h3></li>
+            </ul>
+            </label>
+            <input name="dish1" id="DISH5" type="checkbox" style="display:none">
+            <label for="DISH5" id="DISHx5" style="display:none">
+            	<ul data-role="listview" data-inset="false" >
+                <li> <h3> Burger $4.00</h3></li>
+            </ul>
+            </label>
+            <input name="dish1" id="DISH6" type="checkbox" style="display:none">
+            <label for="DISH6" id="DISHx6" style="display:none">
+            	<ul data-role="listview" data-inset="false" >
+                <li> <h3> Beef $12.00</h3></li>
+            </ul>
+            </label>      -->
+                           
+        </fieldset>
+    </div>
+
+    <div>
+	<ul data-role="listview" data-inset="true" >
+	<li data-theme="e"><h2>Selected $ </h2><span class="ui-li-count" id="selected" > 0 </span></a> </li>			
+	<li data-theme="e"><h2>Total $ </h2><span class="ui-li-count" id="totalx" > 0 </span></a> </li>	
+	</ul>
+	</div>
+
+	<div data-role="fieldcontain" class="choice_list">
+            <fieldset data-role="controlgroup">
+            	<h4> Email </h4>
+                <input name="" id="txtEmail" placeholder="" value="@" type="text">
+               <b><label id="lblDisplay"></label></b> 
+            </fieldset>
+   
+	         <a href="#success" id="PayAll" data-role="button" data-inline="true" data-transition="none" 
+	        data-icon="star" data-iconpos="left">
+	            Pay all
+	        </a>    	              
+	       	<a href="#paypal" id="PayandShare" data-role="button" data-inline="true" data-transition="none" 
+	        data-icon="star" data-iconpos="left" onclick="hideCheckBox()">
+	            Pay selection
+	        </a> 
+	         
+    </div>
+
+	</div>
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar" data-theme="e" >
+			<ul>
+				<li><a href="#people" data-icon="check" data-iconpos="top" data-theme="a">People</a></li>
+				<li><a href="#menu" data-icon="star" data-iconpos="top" data-theme="a">Menu</a></li>
+				<li><a href="#cart" data-icon="grid" data-iconpos="top" data-theme="a">Cart</a></li>
+			</ul>
+		</div><!-- /navbar -->
+	</div><!-- /footer -->
+</div>
+
+
+<div data-role="page" id="success" data-theme="c">
+	<div data-role="header">
+		<h1>Success</h1>
+	</div><!-- /header -->
+	
+	<div data-role="content">	
+	<div class="choice_list" id="cart"> 
+	<h1>  Success </h1>
+    </div>
+    	All transactions are sent to guests.
+	</div>
+	<div data-role="footer" data-position="fixed">
+		<div data-role="navbar" data-theme="e" >
+			<ul>
+				<li><a href="#people" data-icon="check" data-iconpos="top" data-theme="a">People</a></li>
+				<li><a href="#menu" data-icon="star" data-iconpos="top" data-theme="a">Menu</a></li>
+				<li><a href="#cart" data-icon="grid" data-iconpos="top" data-theme="a">Cart</a></li>
+			</ul>
+		</div><!-- /navbar -->
+	</div><!-- /footer -->
+</div>
+
+</body>
+</html>
